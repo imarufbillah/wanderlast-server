@@ -33,6 +33,12 @@ async function run() {
       });
     });
 
+    // Get all destinations
+    app.get("/destinations", async (req, res) => {
+      const destinations = await destinationsCollection.find().toArray();
+      res.json(destinations);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
