@@ -47,6 +47,22 @@ async function run() {
       res.json(destination);
     });
 
+    // Update a destination by ID
+    app.patch("/destinations/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: updatedData,
+      };
+      const result = await destinationsCollection.updateOne(query, updateDoc);
+      res.json({
+        success: true,
+        message: "Destination updated successfully",
+        modifiedCount: result.modifiedCount,
+      });
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
