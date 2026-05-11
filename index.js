@@ -63,6 +63,18 @@ async function run() {
       });
     });
 
+    // Delete a destination by ID
+    app.delete("/destinations/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await destinationsCollection.deleteOne(query);
+      res.json({
+        success: true,
+        message: "Destination deleted successfully",
+        deletedCount: result.deletedCount,
+      });
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
