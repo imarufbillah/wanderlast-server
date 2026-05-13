@@ -21,6 +21,7 @@ async function run() {
 
     const database = client.db("wanderlast");
     const destinationsCollection = database.collection("destinations");
+    const bookingsCollection = database.collection("bookings");
 
     // Create a new destination
     app.post("/destinations", async (req, res) => {
@@ -72,6 +73,16 @@ async function run() {
         success: true,
         message: "Destination deleted successfully",
         deletedCount: result.deletedCount,
+      });
+    });
+
+    app.post("/bookings", async (req, res) => {
+      const booking = req.body;
+      const result = await bookingsCollection.insertOne(booking);
+      res.json({
+        success: true,
+        message: "Booking added successfully",
+        id: result.insertedId,
       });
     });
 
