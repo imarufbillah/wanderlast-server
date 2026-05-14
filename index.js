@@ -76,6 +76,7 @@ async function run() {
       });
     });
 
+    // Create a new booking
     app.post("/bookings", async (req, res) => {
       const booking = req.body;
       const result = await bookingsCollection.insertOne(booking);
@@ -86,10 +87,23 @@ async function run() {
       });
     });
 
+    // Get bookings by user ID
     app.get("/bookings/:userId", async (req, res) => {
       const userId = req.params.userId;
       const result = await bookingsCollection.find({ userId }).toArray();
       res.json(result);
+    });
+
+    // Delete a booking by ID
+    app.delete("/bookings/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bookingsCollection.deleteOne(query);
+      res.json({
+        success: true,
+        message: "Booking deleted successfully",
+        deletedCount: result.deletedCount,
+      });
     });
 
     // Send a ping to confirm a successful connection
