@@ -39,7 +39,48 @@ const verifyJWT = async (req, res, next) => {
 
   try {
     const { payload } = await jwtVerify(token, JWKS);
+    req.user = payload;
     next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized access",
+    });
+  }
+};
+
+const verifyAdminJWT = async (req, res, next) => {
+  const JWKS = createRemoteJWKSet(
+    new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
+  );
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized access",
+    });
+  }
+
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized access",
+    });
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    req.user = payload;
+    if (payload.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden access",
+      });
+    } else {
+      next();
+    }
   } catch (error) {
     return res.status(401).json({
       success: false,
@@ -57,7 +98,7 @@ async function run() {
     const bookingsCollection = database.collection("bookings");
 
     // Create a new destination
-    app.post("/destinations", verifyJWT, async (req, res) => {
+    app.post("/destinations", verifyAdminJWT, async (req, res) => {
       const destination = req.body;
       const result = await destinationsCollection.insertOne(destination);
       res.json({
@@ -82,7 +123,7 @@ async function run() {
     });
 
     // Update a destination by ID
-    app.patch("/destinations/:id", verifyJWT, async (req, res) => {
+    app.patch("/destinations/:id", verifyAdminJWT, async (req, res) => {
       const id = req.params.id;
       const updatedData = req.body;
       const query = { _id: new ObjectId(id) };
@@ -98,7 +139,7 @@ async function run() {
     });
 
     // Delete a destination by ID
-    app.delete("/destinations/:id", verifyJWT, async (req, res) => {
+    app.delete("/destinations/:id", verifyAdminJWT, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await destinationsCollection.deleteOne(query);
@@ -123,6 +164,14 @@ async function run() {
     // Get bookings by user ID
     app.get("/bookings/:userId", verifyJWT, async (req, res) => {
       const userId = req.params.userId;
+
+      if (req.user.sub !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden access",
+        });
+      }
+
       const result = await bookingsCollection.find({ userId }).toArray();
       res.json(result);
     });
@@ -131,6 +180,23 @@ async function run() {
     app.delete("/bookings/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
+
+      const booking = await bookingsCollection.findOne(query);
+
+      if (!booking) {
+        return res.status(404).json({
+          success: false,
+          message: "Booking not found",
+        });
+      }
+
+      if (booking.userId !== req.user.sub) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only delete your own bookings",
+        });
+      }
+
       const result = await bookingsCollection.deleteOne(query);
       res.json({
         success: true,
